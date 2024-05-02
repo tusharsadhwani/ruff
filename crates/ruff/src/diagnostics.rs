@@ -37,6 +37,7 @@ pub(crate) struct Diagnostics {
     pub(crate) fixed: FixMap,
     pub(crate) imports: ImportMap,
     pub(crate) notebook_indexes: FxHashMap<String, NotebookIndex>,
+    pub(crate) seen_parse_error: bool,
 }
 
 impl Diagnostics {
@@ -50,6 +51,7 @@ impl Diagnostics {
             fixed: FixMap::default(),
             imports,
             notebook_indexes,
+            seen_parse_error: false,
         }
     }
 
@@ -130,6 +132,7 @@ impl AddAssign for Diagnostics {
         self.imports.extend(other.imports);
         self.fixed += other.fixed;
         self.notebook_indexes.extend(other.notebook_indexes);
+        self.seen_parse_error |= other.seen_parse_error;
     }
 }
 
@@ -267,7 +270,7 @@ pub(crate) fn lint_path(
     // Lint the file.
     let (
         LinterResult {
-            data: (messages, imports),
+            data: (messages, imports, seen_parse_error),
             error: parse_error,
         },
         transformed,
@@ -380,6 +383,7 @@ pub(crate) fn lint_path(
         fixed: FixMap::from_iter([(fs::relativize_path(path), fixed)]),
         imports,
         notebook_indexes,
+        seen_parse_error,
     })
 }
 
@@ -416,7 +420,7 @@ pub(crate) fn lint_stdin(
     // Lint the inputs.
     let (
         LinterResult {
-            data: (messages, imports),
+            data: (messages, imports, seen_parse_error),
             error: parse_error,
         },
         transformed,
@@ -520,5 +524,6 @@ pub(crate) fn lint_stdin(
         )]),
         imports,
         notebook_indexes,
+        seen_parse_error,
     })
 }

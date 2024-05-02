@@ -62,7 +62,7 @@ pub type FixTable = FxHashMap<Rule, usize>;
 
 pub struct FixerResult<'a> {
     /// The result returned by the linter, after applying any fixes.
-    pub result: LinterResult<(Vec<Message>, Option<ImportMap>)>,
+    pub result: LinterResult<(Vec<Message>, Option<ImportMap>, bool)>,
     /// The resulting source code, after applying any fixes.
     pub transformed: Cow<'a, SourceKind>,
     /// The number of fixes applied for each [`Rule`].
@@ -84,7 +84,7 @@ pub fn check_path(
     source_kind: &SourceKind,
     source_type: PySourceType,
     tokens: TokenSource,
-) -> LinterResult<(Vec<Diagnostic>, Option<ImportMap>)> {
+) -> LinterResult<(Vec<Diagnostic>, Option<ImportMap>, bool)> {
     // Aggregate all diagnostics.
     let mut diagnostics = vec![];
     let mut imports = None;
@@ -304,8 +304,11 @@ pub fn check_path(
         }
     }
 
+    let mut seen_parse_error = false;
     // If there was a syntax error, check if it should be discarded.
     if error.is_some() {
+        seen_parse_error = true;
+
         // If the syntax error was removed by _any_ of the above disablement methods (e.g., a
         // `noqa` directive, or a `per-file-ignore`), discard it.
         if !diagnostics
@@ -340,7 +343,7 @@ pub fn check_path(
         }
     }
 
-    LinterResult::new((diagnostics, imports), error)
+    LinterResult::new((diagnostics, imports, seen_parse_error), error)
 }
 
 const MAX_ITERATIONS: usize = 100;
@@ -429,7 +432,7 @@ pub fn lint_only(
     source_kind: &SourceKind,
     source_type: PySourceType,
     data: ParseSource,
-) -> LinterResult<(Vec<Message>, Option<ImportMap>)> {
+) -> LinterResult<(Vec<Message>, Option<ImportMap>, bool)> {
     // Tokenize once.
     let tokens = data.into_token_source(source_kind, source_type);
 
@@ -465,10 +468,11 @@ pub fn lint_only(
         tokens,
     );
 
-    result.map(|(diagnostics, imports)| {
+    result.map(|(diagnostics, imports, seen_parse_error)| {
         (
             diagnostics_to_messages(diagnostics, path, &locator, &directives),
             imports,
+            seen_parse_error,
         )
     })
 }
@@ -604,10 +608,11 @@ pub fn lint_fix<'a>(
         }
 
         return Ok(FixerResult {
-            result: result.map(|(diagnostics, imports)| {
+            result: result.map(|(diagnostics, imports, seen_parse_error)| {
                 (
                     diagnostics_to_messages(diagnostics, path, &locator, &directives),
                     imports,
+                    seen_parse_error,
                 )
             }),
             transformed,

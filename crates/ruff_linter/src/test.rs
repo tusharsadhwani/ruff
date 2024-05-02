@@ -123,7 +123,7 @@ pub(crate) fn test_contents<'a>(
         &indexer,
     );
     let LinterResult {
-        data: (diagnostics, _imports),
+        data: (diagnostics, _imports, seen_parse_error),
         error,
     } = check_path(
         path,
@@ -190,7 +190,7 @@ pub(crate) fn test_contents<'a>(
             );
 
             let LinterResult {
-                data: (fixed_diagnostics, _),
+                data: (fixed_diagnostics, _, seen_parse_error),
                 error: fixed_error,
             } = check_path(
                 path,

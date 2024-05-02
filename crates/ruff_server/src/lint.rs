@@ -68,7 +68,7 @@ pub(crate) fn check(
 
     // Generate checks.
     let LinterResult {
-        data: (diagnostics, _imports),
+        data: (diagnostics, _imports, seen_parse_error),
         ..
     } = check_path(
         Path::new("<filename>"),
